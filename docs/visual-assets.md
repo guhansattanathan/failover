@@ -37,4 +37,6 @@ The shared application header uses `frontend/public/brand/failover-approved.png`
 
 ## Landing illustration
 
-`LandingHero.tsx` provides original SVG artwork: a bridge, router, three application instances, and storage. Animated request dots follow the drawn routes. The offline control changes one illustrated instance and removes its packet animation; no evaluation or capacity claim is inferred. Pause/resume operates on SVG animation playback, with reduced-motion users starting paused. The composition follows the user’s centered headline / lower illustration reference in the existing teal and muted green palette.
+`LandingHero.tsx` provides original vertical SVG artwork: client, load balancer, two application servers, primary database and replica database. A synchronized 12-second cycle alternates requests left/right in six-second phases. Both servers write to the primary; the dashed path depicts replication. Artwork is illustrative, not a performance model. Text sits left of the diagram on desktop; mobile stacks the sections. No bridge or playback controls are displayed. OS reduced-motion changes pause the SVG and hide moving packets.
+
+Landing navigation uses native section anchors with smooth scrolling, disabled for reduced motion. The original dark teal and muted green palette is retained.

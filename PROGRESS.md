@@ -60,3 +60,10 @@ Replaced canvas cards with original local SVG component illustrations, including
 - [x] Centered headline and CTA above original bridge/server artwork, with interactive offline/restore and packet motion.
 - [x] Pause control and reduced-motion support; responsive mobile layout.
 - [x] Production builds and browser checks passed: offline/restore, pause, reduced motion, challenge navigation, no horizontal mobile overflow or browser errors. Desktop/mobile screenshots inspected; server-label spacing corrected.
+
+## Split hero and vertical request flow
+
+- [x] Text left / animation right; client → load balancer → alternating servers → primary database → replica.
+- [x] Removed bridge, offline/pause controls and caption; retained OS reduced-motion support.
+- [x] Smooth section-anchor scrolling with reduced-motion fallback.
+- [x] Docker build/type check passed. Browser checks verified alternating phases, layout, absence of old controls, multiple intermediate scroll positions, mobile overflow and reduced motion. Desktop/mobile screenshots inspected.
