@@ -28,3 +28,9 @@ Menus open upward near the bottom of a panel, support Tab/Enter and Escape, and 
 ## CDN
 
 CDN artwork uses a cloud connected to edge servers. Generic CDN uses a globe glyph; Cloudflare uses the bundled Simple Icons mark. AWS CloudFront uses the [AWS Labs v20.0 architecture icon](https://github.com/awslabs/aws-icons-for-plantuml/blob/v20.0/dist/NetworkingContentDelivery/CloudFront.png), bundled locally with its repository license in `frontend/src/assets/AWS-ICONS-LICENSE.txt`. Product trademarks belong to their respective owners.
+
+## Approved Failover wordmark
+
+The shared application header uses `frontend/public/brand/failover-approved.png`, the exact image approved by the user. Its original pixels are preserved. An SVG viewport frames the wordmark; CSS inversion and screen blending display it in white against the dark header without regenerating the artwork. It replaces both the old `f/` symbol and the plain brand text on all routes. The accessible home-link name and document title remain text.
+
+`frontend/public/brand/favicon.svg` is a compact code-native bridge mark based on the approved wordmark, optimized for browser tabs. No existing product component icons are changed.

@@ -41,3 +41,9 @@ Replaced canvas cards with original local SVG component illustrations, including
 - [x] Generic, Cloudflare and AWS CloudFront choices with matching artwork, dropdowns and hover details.
 - [x] Versioned request-path support; CDN does not replace the lesson cache or required load balancer.
 - [x] 93 isolated backend tests, 93 PostgreSQL tests, Docker production build/type check and all 6 real-browser workflows passed. CDN screenshot visually inspected.
+
+## Approved project branding
+
+- [x] Replaced the shared text and f/ header branding with the approved wordmark; preserved the source PNG in the project.
+- [x] Added a matching compact bridge favicon and responsive desktop/mobile sizing.
+- [x] Host and Docker production builds passed. Browser checks verified catalog/workspace/not-found branding, home navigation, mobile sizing and favicon delivery; desktop/mobile screenshots inspected.

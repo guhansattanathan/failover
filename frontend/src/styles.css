@@ -25,8 +25,10 @@ small { font-size: 12px; }
 .field-note { font-size: 12px; }
 .eyebrow { font-size: 12px; letter-spacing: 1.4px; font-weight: 650; color: var(--muted); }
 .app-header { height: 68px; background: #142e2f; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid #314747; }
-.brand { display: flex; align-items: center; gap: 12px; color: #fff; font-size: 22px; letter-spacing: -.5px; font-weight: 650; }
-.brand-mark { display: flex; align-items: center; justify-content: center; height: 32px; width: 32px; border: 1px solid #73918a; border-radius: var(--radius); font-family: monospace; font-size: 22px; font-weight: 500; }
+.brand { display: flex; align-items: center; gap: 12px; color: #fff; flex-shrink: 0; }
+/* Frame the approved artwork without modifying the source. Screen blending removes
+   the inverted white backdrop, preserving its exact letterforms on the dark header. */
+.brand-logo { display: block; width: 190px; height: 40px; overflow: hidden; filter: invert(1); mix-blend-mode: screen; }
 .brand-caption { padding-left: 20px; margin-left: 14px; border-left: 1px solid #516562; font-size: 12px; font-weight: 500; letter-spacing: 1.2px; color: #adbfba; }
 .demo-badge { display: flex; align-items: center; gap: 8px; color: #d0dcd7; font-size: 12px; }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #9fb6a5; }
@@ -184,3 +186,5 @@ input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; f
 .react-flow__handle.valid { background: var(--accent) !important; }
 
 .technology-picker.opens-up .technology-options { top: auto; bottom: calc(100% + 4px); }
+
+@media (max-width: 520px) { .brand-logo { width: 160px; height: 34px; } .app-header { gap: 16px; } }
