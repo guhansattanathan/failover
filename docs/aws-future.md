@@ -1,0 +1,20 @@
+# Future AWS hosting plan (not deployed)
+
+No AWS resources, accounts or paid services are used by this MVP. This is a proposed operating architecture, based on current service documentation checked on October 17, 2026. Recheck engine versions, region support, network limits and costs before implementation.
+
+| Local role | Proposed future service | Rationale / qualification |
+| --- | --- | --- |
+| Django API / Celery worker / recovery | ECS services on Fargate, with an Application Load Balancer for the web service | Fargate supports containerized ECS workloads and ALB integration; configure separate task resources, private networking, task roles and readiness. [AWS documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html) |
+| PostgreSQL | RDS for PostgreSQL | Multi-AZ, backups, snapshots, point-in-time restore and TLS are available; validate immutable triggers and migrations with the managed DB role. [RDS documentation](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html) |
+| Exact MongoDB draft store | MongoDB Atlas on AWS, or an operated MongoDB replica set on EC2 | Atlas supports AWS hosting. Preserve compare-and-swap and unique-ID semantics; configure private access, backups and driver compatibility. [MongoDB Atlas cloud providers](https://www.mongodb.com/docs/atlas/reference/cloud-providers/) |
+| Possible MongoDB-compatible alternative | Amazon DocumentDB, only after compatibility testing | DocumentDB is a MongoDB-compatible AWS database service, not the MongoDB server used locally. Verify driver options, CRUD behavior, retryable writes, indexes and consistency requirements before selecting it. [DocumentDB overview](https://docs.aws.amazon.com/documentdb/latest/devguide/what-is.html) |
+| RabbitMQ | Amazon MQ for RabbitMQ | Supports single brokers and multi-AZ cluster deployments; application connections use TLS. Verify Celery/Kombu transport and queue settings with the chosen managed engine version. [Amazon MQ documentation](https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/working-with-rabbitmq.html) |
+| Bounded cache | ElastiCache using a supported Redis OSS or Valkey engine | Preserve TTLs, versioned keys and authoritative fallback; validate client compatibility and supported versions. [ElastiCache documentation](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.html) |
+
+Serve static frontend assets via an appropriate CDN/origin setup with SPA fallback and same-origin `/api` routing. Add a real domain and TLS certificate before traffic is accepted. Keep data services in private networks; explicitly restrict security groups. Configure secure proxy headers rather than blindly trusting forwarded client headers.
+
+Before public hosting, implement authenticated users and authorization on every challenge draft/submission/history endpoint; replace the singleton Mongo document key with an ownership-aware compound identity. Add CSRF protection appropriate to session authentication, cookie security, strict origins, rate and payload limits, abuse controls and a retention/deletion policy. The demo's origin checks are not a substitute for authentication.
+
+Use managed secret storage, least-privilege IAM/task roles, rotation, TLS to databases/broker and encryption at rest. Replace all demo credentials. Keep secrets out of assets and source. Add audit logs and redaction rules, dependency/container scanning and digest pinning.
+
+Operate database and Mongo backups with tested restores; plan recovery objectives explicitly. Monitor queue age/depth, SQL lease age, recovery exhaustion, task errors, storage space, DB connections and cache fallback. Alarm on persistent pending/error states. Run migrations as a controlled job, deploy workers/evaluator versions compatibly with frozen snapshots, exercise broker/worker loss, and rehearse rollback. Scale workers by queue pressure while retaining SQL idempotency. Budget and capacity planning need measured workload data; this document intentionally provides no invented latency or dollar estimates.

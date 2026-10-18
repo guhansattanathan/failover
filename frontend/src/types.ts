@@ -1,0 +1,14 @@
+export type Configuration = Record<string, number | boolean>;
+export type GraphNode = { id: string; type: string; technology: string; label: string; position: { x: number; y: number }; configuration: Configuration };
+export type Operation = 'request' | 'read' | 'write' | 'publish' | 'consume';
+export type GraphEdge = { id: string; source: string; target: string; operation: Operation };
+export type Graph = { schemaVersion: number; nodes: GraphNode[]; edges: GraphEdge[] };
+export type Viewport = { x: number; y: number; zoom: number };
+export type Spec = { kind: 'boolean' | 'integer' | 'enum'; default: number | boolean; min?: number; max?: number; values?: number[] };
+export type ComponentEntry = { type: string; title: string; technology: string; icon: string; description: string; configuration: Record<string, Spec> };
+export type Catalog = { version: number; schemaVersion: number; components: ComponentEntry[]; connections: { source: string; target: string; operation: Operation }[]; limits: { nodes: number; edges: number; payloadBytes: number } };
+export type Challenge = { slug: string; title: string; difficulty: string; summary: string; version: number; completed?: boolean; prompt: string; constraints: string[]; assumptions: string[]; parameters: Record<string, unknown>; catalogVersion: number; modelVersion: number };
+export type Draft = { revision: number; catalogVersion: number; graph: Graph; viewport: Viewport; updatedAt: string | null };
+export type Rule = { ruleId: string; title: string; required: boolean; passed: boolean; expected: string; observed: string; explanation: string; hint: string; nodeIds: string[]; edgeIds: string[] };
+export type Submission = { id: string; graph: Graph; challengeVersion: number; catalogVersion: number; modelVersion: number; status: 'pending' | 'running' | 'passed' | 'failed' | 'error'; evaluatorVersion: string; results: { score: number; passedChecks: number; totalChecks: number; rules: Rule[] } | null; canRetry: boolean; errorCategory: string | null; createdAt: string };
+export type HistoryPage = { count: number; page: number; pageSize: number; results: Submission[] };

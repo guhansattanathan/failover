@@ -1,0 +1,4 @@
+# Optional: expose only the API for Vite development. Infrastructure remains internal.
+services:
+  api:
+    ports: ["127.0.0.1:8000:8000"]
