@@ -22,7 +22,12 @@ LESSONS = [
      "parameters": {"appCapacity": 2000, "reads": 10000, "writes": 100, "dbCapacity": 2000, "hitRatios": {"128": 0.5, "256": 0.8, "512": 0.9}},
      "rules": ["topology", "request_path", "data_paths", "persistence", "app_capacity", "database_load"]},
 ]
-MODEL_VERSION = 1
+# New frozen lessons permit one optional CDN hop; historical definitions keep their old rules.
+for definition in LESSONS:
+    definition["parameters"]["allowCdn"] = True
+    definition["constraints"].append("An optional CDN may sit between the client and application or load balancer, using request edges. URL shortener still requires a load balancer.")
+    definition["assumptions"].append("CDN cache hits, latency, capacity and failure are not modeled. CDN use does not reduce graded traffic or replace the application cache.")
+MODEL_VERSION = 2
 
 
 def lesson(slug):

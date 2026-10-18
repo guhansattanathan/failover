@@ -24,8 +24,11 @@ class Context:
 
     def reached(self):
         client, app = self.one("client"), self.one("application")
-        via = any(self.edge(client, lb, "request") and self.edge(lb, app, "request") for lb in self.of("load_balancer"))
-        return via if self.lesson["slug"] == "url-shortener" else via or self.edge(client, app, "request")
+        origins = [client]
+        if self.lesson["parameters"].get("allowCdn"):
+            origins += [cdn for cdn in self.of("cdn") if self.edge(client, cdn, "request")]
+        via = any(self.edge(origin, lb, "request") and self.edge(lb, app, "request") for origin in origins for lb in self.of("load_balancer"))
+        return via if self.lesson["slug"] == "url-shortener" else via or any(self.edge(origin, app, "request") for origin in origins)
 
     def pipeline(self):
         return self.reached() and self.edge(self.one("application"), self.one("queue"), "publish") and self.edge(self.one("queue"), self.one("worker"), "consume")
@@ -44,7 +47,7 @@ def topology(c):
 
 
 def request_path(c):
-    return c.result("request_path", "Reach the application", c.reached(), "Client → load balancer → application" if c.lesson["slug"] == "url-shortener" else "Client → application, directly or via load balancer", f"Complete request path: {c.reached()}", "Connect the client to the application with request arrows. URL shortener requires a load balancer in that path.", ["client", "load_balancer", "application"])
+    return c.result("request_path", "Reach the application", c.reached(), ("Client → optional CDN → load balancer → application" if c.lesson["parameters"].get("allowCdn") else "Client → load balancer → application") if c.lesson["slug"] == "url-shortener" else ("Client → optional CDN → application, directly or via load balancer" if c.lesson["parameters"].get("allowCdn") else "Client → application, directly or via load balancer"), f"Complete request path: {c.reached()}", "Connect the client to the application with request arrows. URL shortener requires a load balancer in that path.", ["client", "cdn", "load_balancer", "application"])
 
 
 def storage(c):

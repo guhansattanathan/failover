@@ -55,7 +55,7 @@ function Editor({ slug }: { slug: string }) {
     Promise.all([api<Catalog>('/components'), api<Challenge>(`/challenges/${slug}`)]).then(async ([c, lesson]) => {
       if (!alive) return; setCatalog(c); setChallenge(lesson);
       try { const d = await api<Draft>(`/challenges/${slug}/draft`); if (!alive) return;
-        if (![1, c.version].includes(d.catalogVersion)) throw new Error('Saved draft uses an unsupported catalog. Submit a new design or export your work before migrating.');
+        if (![1, 2, c.version].includes(d.catalogVersion)) throw new Error('Saved draft uses an unsupported catalog. Submit a new design or export your work before migrating.');
         installGraph(d.graph, c, d.viewport); setRevision(d.revision); setDraftReady(true); setDirty(false);
       } catch (e) { if (alive) setDraftError(message(e)); }
     }).catch(e => { if (alive) setError(message(e)); }).finally(() => { if (alive) setLoading(false); });
@@ -126,7 +126,7 @@ function Editor({ slug }: { slug: string }) {
   }
   async function reloadDraft() {
     if (dirty && !window.confirm('Replace your unsaved canvas with the saved draft?')) return;
-    try { const d = await api<Draft>(`/challenges/${slug}/draft`); if (![1, catalog!.version].includes(d.catalogVersion)) throw new Error('Saved draft catalog is incompatible.'); installGraph(d.graph, catalog!, d.viewport); setRevision(d.revision); setDirty(false); setDraftReady(true); setDraftError(''); setError(''); setNotice('Saved draft reloaded'); }
+    try { const d = await api<Draft>(`/challenges/${slug}/draft`); if (![1, 2, catalog!.version].includes(d.catalogVersion)) throw new Error('Saved draft catalog is incompatible.'); installGraph(d.graph, catalog!, d.viewport); setRevision(d.revision); setDirty(false); setDraftReady(true); setDraftError(''); setError(''); setNotice('Saved draft reloaded'); }
     catch (e) { setDraftError(message(e)); }
   }
   async function submit() {
@@ -141,7 +141,7 @@ function Editor({ slug }: { slug: string }) {
     catch (e) { setError(message(e)); } finally { setSubmitting(false); }
   }
   function reopen(s: Submission) {
-    if (![1, catalog!.version].includes(s.catalogVersion)) { setError('This snapshot needs a catalog migration before editing.'); return; }
+    if (![1, 2, catalog!.version].includes(s.catalogVersion)) { setError('This snapshot needs a catalog migration before editing.'); return; }
     if (dirty && !window.confirm('Replace unsaved edits with this submission snapshot?')) return;
     installGraph(s.graph, catalog!, defaultViewport); changed(); setNotice(`Opened snapshot ${s.id.slice(0, 8)} as an unsaved draft`); setResult(s); setBottomTab('results');
   }

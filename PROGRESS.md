@@ -35,3 +35,9 @@ Replaced canvas cards with original local SVG component illustrations, including
 - [x] Additive catalog v2 and immutable lesson v2; older drafts/snapshots remain editable through the compatible catalog.
 - [x] Larger labeled output handles, artwork drop targets, separate read/write arrows and invalid/duplicate feedback.
 - [x] 83 isolated and 83 PostgreSQL tests passed, including all technology variants and version preservation. All five real-browser workflows passed after final dropdown placement polish, including visible Oracle/RDS options near the panel edge. Docker frontend type check/production build passed; screenshot visually inspected.
+
+## CDN addition
+
+- [x] Generic, Cloudflare and AWS CloudFront choices with matching artwork, dropdowns and hover details.
+- [x] Versioned request-path support; CDN does not replace the lesson cache or required load balancer.
+- [x] 93 isolated backend tests, 93 PostgreSQL tests, Docker production build/type check and all 6 real-browser workflows passed. CDN screenshot visually inspected.

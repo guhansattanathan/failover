@@ -24,3 +24,7 @@ The eight palette groups and the inspector offer icon-bearing technology dropdow
 - Other product glyphs: existing pinned Simple Icons package. Brand trademarks remain their owners' property.
 
 Menus open upward near the bottom of a panel, support Tab/Enter and Escape, and retain a visible current choice. Connection completion uses React Flow's [onConnectEnd](https://reactflow.dev/api-reference/types/on-connect-end) for drops onto component artwork; graph validation still applies.
+
+## CDN
+
+CDN artwork uses a cloud connected to edge servers. Generic CDN uses a globe glyph; Cloudflare uses the bundled Simple Icons mark. AWS CloudFront uses the [AWS Labs v20.0 architecture icon](https://github.com/awslabs/aws-icons-for-plantuml/blob/v20.0/dist/NetworkingContentDelivery/CloudFront.png), bundled locally with its repository license in `frontend/src/assets/AWS-ICONS-LICENSE.txt`. Product trademarks belong to their respective owners.

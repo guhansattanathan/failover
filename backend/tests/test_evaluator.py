@@ -166,3 +166,34 @@ def test_technology_variants_keep_semantic_grading(kind):
         normalized = validate_graph(graph)
         lesson = next(c for c in LESSONS if c['slug'] == slug)
         assert evaluate(normalized, lesson)['passed'], entry['technology']
+
+@pytest.mark.parametrize('technology', ['generic-cdn', 'cloudflare', 'cloudfront'])
+@pytest.mark.parametrize('slug', ['url-shortener', 'notification-service', 'product-catalog'])
+def test_cdn_request_paths(technology, slug):
+    g = passing(slug)
+    g['nodes'].append(node('cdn', technology))
+    first = next(e for e in g['edges'] if e['source'] == 'client')
+    destination = first['target']
+    first['target'] = 'cdn'
+    g['edges'].append({'id': 'cdn-origin', 'source': 'cdn', 'target': destination, 'operation': 'request'})
+    assert evaluate(g, lesson(slug))['passed']
+    old_lesson = deepcopy(lesson(slug))
+    old_lesson['parameters'].pop('allowCdn')
+    assert not evaluate(g, old_lesson)['passed']
+    g['edges'] = [e for e in g['edges'] if e['source'] != 'client']
+    assert not evaluate(g, lesson(slug))['passed']
+
+
+def test_cdn_does_not_replace_load_balancer_or_cache():
+    g = passing('url-shortener')
+    g['nodes'] = [n for n in g['nodes'] if n['id'] != 'lb'] + [node('cdn', 'cloudflare')]
+    for e in g['edges']:
+        if e['source'] == 'lb': e['source'] = 'cdn'
+        if e['target'] == 'lb': e['target'] = 'cdn'
+    assert not evaluate(g, lesson('url-shortener'))['passed']
+    g = passing('product-catalog')
+    g['nodes'] = [n for n in g['nodes'] if n['id'] != 'cache'] + [node('cdn', 'cloudfront')]
+    g['edges'] = [e for e in g['edges'] if e['target'] != 'cache']
+    assert not evaluate(g, lesson('product-catalog'))['passed']
+    g['edges'].append({'id': 'invalid-cdn', 'source': 'app', 'target': 'cdn', 'operation': 'read'})
+    with pytest.raises(GraphError): validate_graph(g)

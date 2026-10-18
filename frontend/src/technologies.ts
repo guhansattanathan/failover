@@ -1,4 +1,16 @@
 export const technologies: Record<string, { type: string; name: string }> = {
+  "generic-cdn": {
+    "type": "cdn",
+    "name": "Generic CDN"
+  },
+  "cloudflare": {
+    "type": "cdn",
+    "name": "Cloudflare"
+  },
+  "cloudfront": {
+    "type": "cdn",
+    "name": "AWS CloudFront"
+  },
   "generic-client": {
     "type": "client",
     "name": "Generic client"

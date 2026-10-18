@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 import { technologies, technologyName } from '../src/technologies';
 
 async function add(page: Page, tech: string) {
-  const titles: Record<string, string> = { client: 'Client', load_balancer: 'Load balancer', application: 'Application service', cache: 'Cache', relational_database: 'Relational database', nonrelational_database: 'NoSQL database', queue: 'Message queue', worker: 'Background worker' };
+  const titles: Record<string, string> = { cdn: 'CDN', client: 'Client', load_balancer: 'Load balancer', application: 'Application service', cache: 'Cache', relational_database: 'Relational database', nonrelational_database: 'NoSQL database', queue: 'Message queue', worker: 'Background worker' };
   const label = `${titles[technologies[tech].type]} technology`;
   await page.getByLabel(label, { exact: true }).click();
   await page.getByRole('group', { name: `${label} options`, exact: true }).getByRole('button', { name: technologyName(tech), exact: true }).click();
@@ -173,7 +173,7 @@ test('grouped technologies preserve configuration and arrows attach to artwork',
   await page.goto('/challenges/notification-service');
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await page.getByRole('button', { name: /^Components/ }).click();
-  await expect(page.locator('.palette-group')).toHaveCount(8);
+  await expect(page.locator('.palette-group')).toHaveCount(9);
   // Every variant has its own icon in the dropdown, and selection updates the preview.
   for (const group of await page.locator('.palette-group').all()) {
     const picker = group.locator('summary');
@@ -249,6 +249,42 @@ test('separate read and write arrows attach by dragging and survive node moves',
   expect(draft.graph.edges.filter((e: { operation: string }) => e.operation === 'write')).toHaveLength(1);
   await page.reload();
   await expect(page.locator('.react-flow__edge-path')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Reset', exact: true }).click();
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Draft saved' })).toBeVisible();
+});
+
+test('CDN variants connect, persist and keep the lesson requirements', async ({ page }) => {
+  page.on('dialog', d => d.accept());
+  await page.goto('/challenges/url-shortener');
+  await page.getByRole('button', { name: 'Reset', exact: true }).click();
+  await page.getByRole('button', { name: /^Components/ }).click();
+  for (const tech of ['generic-client', 'generic-cdn', 'nginx', 'service', 'postgresql']) await add(page, tech);
+  await page.getByTestId('component-service').click();
+  await page.getByLabel('Instances', { exact: true }).fill('3');
+  await dragArrow(page, 'Client request output', 'generic-cdn');
+  await dragArrow(page, 'CDN request output', 'nginx');
+  await connect(page, 'Load balancer', 'request', 'Application service');
+  await connect(page, 'Application service', 'read', 'PostgreSQL');
+  await connect(page, 'Application service', 'write', 'PostgreSQL');
+  for (const tech of ['cloudflare', 'cloudfront']) {
+    await page.getByTestId(`component-${tech === 'cloudflare' ? 'generic-cdn' : 'cloudflare'}`).click();
+    await page.getByLabel('Component technology', { exact: true }).click();
+    await page.getByRole('group', { name: 'Component technology options', exact: true }).getByRole('button', { name: technologyName(tech), exact: true }).click();
+    await expect(page.getByTestId(`component-${tech}`).locator('svg.component-illustration')).toBeVisible();
+  }
+  await page.getByTestId('component-cloudfront').hover();
+  await expect(page.getByRole('tooltip')).toContainText('Not modeled in this lesson');
+  await page.getByRole('button', { name: 'Submit design' }).click();
+  await expect(page.getByText('100 / 100 · 4/4 checks')).toBeVisible();
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Draft saved' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId('component-cloudfront')).toBeVisible();
+  await expect(page.locator('.canvas-caption')).toContainText('5 connections');
+  await page.getByTestId('component-cloudfront').click();
+  await page.getByLabel('Component technology', { exact: true }).click();
+  await page.screenshot({ path: 'test-results/cdn.png', fullPage: true });
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await page.getByRole('button', { name: 'Save draft', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Draft saved' })).toBeVisible();

@@ -76,11 +76,20 @@ function Queue({ technology }: { technology: string }) {
   </>;
 }
 
+function Cdn({ technology }: { technology: string }) {
+  return <>
+    <path d="M80 76v22M35 111l45-13 45 13M35 111V91m90 20V91" fill="none" stroke="#73968b" strokeWidth="3"/>
+    <path d="M42 76C14 76 13 40 38 37c4-27 44-33 56-8 28-7 43 16 34 34-4 9-13 13-24 13Z" fill="#9bbfb2" stroke="#507f6e" strokeWidth="3"/>
+    <Brand technology={technology} x={59} y={32} size={42} color="#31564c"/>
+    {[35, 80, 125].map(x => <g key={x}><path d={`M${x - 14} 110l14-7 14 7v17l-14 7-14-7Z`} fill="#507f6e"/><path d={`M${x - 14} 110l14 7 14-7-14-7Z`} fill="#9bbfb2"/><circle cx={x} cy="124" r="2" fill="#e5be73"/></g>)}
+  </>;
+}
+
 /** Local vector artwork stays sharp at every editor zoom; no remote image calls. */
 export function ComponentIllustration({ technology }: { technology: string }) {
   const kind = technologies[technology]?.type;
   return <svg className="component-illustration" viewBox="0 0 160 144" fill="none" aria-hidden="true">
-    {kind === 'client' ? <Client technology={technology}/> : kind === 'application' ? <ServerStack technology={technology}/> : kind === 'worker' ? <ServerStack worker technology={technology}/> : kind === 'cache' ? technology === 'redis' ? <RedisStack/> : <><path d="m20 43 60-25 60 25v56l-60 25-60-25Z" fill="#507f6e"/><path d="m20 43 60 25 60-25-60-25Z" fill="#9bbfb2"/><Brand technology={technology} x={59} y={67} size={42}/></> : kind === 'load_balancer' ? <LoadBalancer technology={technology}/> : kind === 'queue' ? <Queue technology={technology}/> : <Database technology={technology}/>}
+    {kind === 'cdn' ? <Cdn technology={technology}/> : kind === 'client' ? <Client technology={technology}/> : kind === 'application' ? <ServerStack technology={technology}/> : kind === 'worker' ? <ServerStack worker technology={technology}/> : kind === 'cache' ? technology === 'redis' ? <RedisStack/> : <><path d="m20 43 60-25 60 25v56l-60 25-60-25Z" fill="#507f6e"/><path d="m20 43 60 25 60-25-60-25Z" fill="#9bbfb2"/><Brand technology={technology} x={59} y={67} size={42}/></> : kind === 'load_balancer' ? <LoadBalancer technology={technology}/> : kind === 'queue' ? <Queue technology={technology}/> : <Database technology={technology}/>}
 
   </svg>;
 }

@@ -42,6 +42,11 @@ export function componentMetrics(node: GraphNode, lesson: Challenge | null): Met
       add('Modeled drain time', capacity > 0 ? `${fmt(backlog / capacity)} seconds` : 'Invalid instance count');
     } else add('Throughput', 'Not modeled in this lesson');
   }
+  if (node.type === 'cdn') {
+    add('Role', 'Edge delivery / origin requests');
+    add('Memory / throughput', 'Not modeled in this lesson');
+    add('Graded traffic reduction', 'None');
+  }
   if (node.type === 'client') {
     add('Role', 'Starts application requests');
     if (typeof p.requiredRps === 'number') add('Lesson demand', `${fmt(p.requiredRps)} requests/s`);

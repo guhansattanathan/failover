@@ -1,5 +1,5 @@
 """Authoritative teaching catalog. No capacities are accepted from a browser."""
-CATALOG_VERSION = 2
+CATALOG_VERSION = 3
 SCHEMA_VERSION = 1
 
 
@@ -13,6 +13,7 @@ def boolean(default):
 
 # Technology variants share semantic rules and configuration, not real-world guarantees.
 GROUPS = [
+    ("cdn", "CDN", {}, [("generic-cdn", "Generic CDN"), ("cloudflare", "Cloudflare"), ("cloudfront", "AWS CloudFront")]),
     ("client", "Client", {}, [("generic-client", "Generic client"), ("browser", "Web browser"), ("android", "Android"), ("ios", "iOS")]),
     ("load_balancer", "Load balancer", {}, [("generic-balancer", "Generic load balancer"), ("nginx", "NGINX")]),
     ("application", "Application service", {"instances": integer(1)}, [("service", "Generic application"), ("nodejs", "Node.js"), ("django", "Django"), ("spring", "Spring Boot")]),
@@ -23,6 +24,7 @@ GROUPS = [
     ("worker", "Background worker", {"instances": integer(1), "ackAfterProcessing": boolean(False)}, [("generic-worker", "Generic background worker"), ("celery", "Celery"), ("sidekiq", "Sidekiq"), ("lambda", "AWS Lambda")]),
 ]
 DESCRIPTIONS = {
+    "cdn": "Delivers content from edge locations and forwards origin requests. Connect client → CDN → application or load balancer. Cache hits, memory, latency and throughput are not modeled; a CDN does not replace the lesson cache.",
     "client": "Starts application requests.",
     "load_balancer": "Routes requests across application instances.",
     "application": "One homogeneous service tier; lesson constants determine capacity.",
@@ -39,6 +41,7 @@ COMPONENTS = [
 ]
 DATABASE_TYPES = {"relational_database", "nonrelational_database"}
 CONNECTIONS = [
+    ("client", "cdn", "request"), ("cdn", "application", "request"), ("cdn", "load_balancer", "request"),
     ("client", "application", "request"), ("client", "load_balancer", "request"),
     ("load_balancer", "application", "request"), ("application", "cache", "read"),
     ("application", "queue", "publish"), ("queue", "worker", "consume"),
