@@ -89,7 +89,7 @@ small { font-size: 12px; }
 .palette .palette-footnote { margin: 20px 0 0; font-size: 12px; color: var(--muted); }
 .canvas-section { display: flex; flex-direction: column; min-width: 0; position: relative; }
 .canvas-caption, .canvas-footer { display: flex; justify-content: space-between; gap: 12px; color: #73827b; font-size: 12px; padding: 12px 20px; background: #f4f6f1; }
-.canvas-caption span:first-child { letter-spacing: 1px; font-weight: 600; }
+.canvas-caption > span:first-child { letter-spacing: 1px; font-weight: 600; }
 .canvas { position: relative; flex: 1; min-height: 0; background: #f5f7f2; }
 .canvas-empty { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; pointer-events: none; padding: 20px; }
 .canvas-empty h2 { font-size: 16px; margin-top: 18px; }
@@ -188,3 +188,9 @@ input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; f
 .technology-picker.opens-up .technology-options { top: auto; bottom: calc(100% + 4px); }
 
 @media (max-width: 520px) { .brand-logo { width: 160px; height: 34px; } .app-header { gap: 16px; } }
+
+.canvas-caption { align-items: center; flex-wrap: wrap; }
+.canvas-display-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.grid-toggle { padding: 4px 8px; font-size: 12px; font-weight: 500; gap: 6px; }
+.grid-toggle[aria-pressed="true"] { color: var(--accent); border-color: #a8c3b7; background: #eaf1eb; }
+.grid-toggle > span { color: var(--muted); }

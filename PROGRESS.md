@@ -47,3 +47,9 @@ Replaced canvas cards with original local SVG component illustrations, including
 - [x] Replaced the shared text and f/ header branding with the approved wordmark; preserved the source PNG in the project.
 - [x] Added a matching compact bridge favicon and responsive desktop/mobile sizing.
 - [x] Host and Docker production builds passed. Browser checks verified catalog/workspace/not-found branding, home navigation, mobile sizing and favicon delivery; desktop/mobile screenshots inspected.
+
+## Canvas dot grid
+
+- [x] Increased dot visibility while keeping a restrained background; grid follows canvas pan/zoom.
+- [x] Added accessible Grid On/Off control with a browser-local preference, default on and safe fallback when storage is unavailable.
+- [x] Docker production build/type check and browser verification passed: toggle, reload, cross-lesson preference, keyboard, mobile and no false unsaved changes. Screenshot inspected.

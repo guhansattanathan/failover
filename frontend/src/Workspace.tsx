@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ReactFlow, ReactFlowProvider, Background, Controls, MarkerType, useNodesState, useEdgesState } from '@xyflow/react';
+import { ReactFlow, ReactFlowProvider, Background, BackgroundVariant, Controls, MarkerType, useNodesState, useEdgesState } from '@xyflow/react';
 import type { Connection, OnConnectEnd, ReactFlowInstance } from '@xyflow/react';
-import { ArrowLeft, Check, ChevronDown, CircleHelp, Plus, RotateCcw, Save, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, CircleHelp, Grid2X2, Plus, RotateCcw, Save, Send, Trash2 } from 'lucide-react';
 import { api, ApiError, message } from './api';
 import { graphError } from './graph';
 import { technologyName } from './componentMetrics';
@@ -26,6 +26,15 @@ function Editor({ slug }: { slug: string }) {
   const [catalog, setCatalog] = useState<Catalog | null>(null), [challenge, setChallenge] = useState<Challenge | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
+  const [showGrid, setShowGrid] = useState(() => {
+    try { return localStorage.getItem('failover.canvas.showGrid') !== 'false'; }
+    catch { return true; }
+  });
+  function toggleGrid() {
+    const next = !showGrid;
+    setShowGrid(next);
+    try { localStorage.setItem('failover.canvas.showGrid', String(next)); } catch { /* Still works when storage is unavailable. */ }
+  }
   const [viewport, setViewport] = useState<Viewport>(defaultViewport);
   const [revision, setRevision] = useState(0), [draftReady, setDraftReady] = useState(false), [dirty, setDirty] = useState(false);
   const editVersion = useRef(0), flow = useRef<ReactFlowInstance<DiagramNode, DiagramEdge> | null>(null);
@@ -165,9 +174,9 @@ function Editor({ slug }: { slug: string }) {
         <TechnologyPicker label={`${c.title} technology`} value={c.technology} choices={choices} onChange={technology => setPaletteChoices(old => ({ ...old, [c.type]: technology }))}/>
       </div>)}<p className="palette-footnote">Technology logos identify products. Capacity is defined by the lesson, not the logo.</p></div>}
     </details>
-    <section className="canvas-section" aria-label="Architecture canvas"><div className="canvas-caption"><span>ARCHITECTURE</span><span>{nodes.length} components · {edges.length} connections</span></div><div className="canvas" onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }} onDrop={e => { e.preventDefault(); const c = catalog.components.find(c => c.technology === e.dataTransfer.getData('application/failover')); if (c && flow.current) addComponent(c, flow.current.screenToFlowPosition({ x: e.clientX, y: e.clientY })); }}>
+    <section className="canvas-section" aria-label="Architecture canvas"><div className="canvas-caption"><span>ARCHITECTURE</span><div className="canvas-display-controls"><span>{nodes.length} components · {edges.length} connections</span><button className="grid-toggle" type="button" aria-label="Dot grid" aria-pressed={showGrid} title={showGrid ? 'Hide dot grid' : 'Show dot grid'} onClick={toggleGrid}><Grid2X2 size={14}/> Grid <span>{showGrid ? 'On' : 'Off'}</span></button></div></div><div className="canvas" onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }} onDrop={e => { e.preventDefault(); const c = catalog.components.find(c => c.technology === e.dataTransfer.getData('application/failover')); if (c && flow.current) addComponent(c, flow.current.screenToFlowPosition({ x: e.clientX, y: e.clientY })); }}>
       <ReactFlow<DiagramNode, DiagramEdge> nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={changes => { onNodesChange(changes); if (changes.some(c => ['position', 'remove'].includes(c.type))) changed(); }} onEdgesChange={changes => { onEdgesChange(changes); if (changes.some(c => c.type === 'remove')) changed(); }} onConnect={connect} onConnectEnd={finishConnection} onSelectionChange={selectionChanged} onNodeClick={(_, n) => { setSelected(n.id); setSelectedEdge(null); }} onEdgeClick={(_, e) => { setSelectedEdge(e.id); setSelected(null); }} onPaneClick={() => { setSelected(null); setSelectedEdge(null); }} onInit={instance => { flow.current = instance; void instance.setViewport(viewport); }} onMoveEnd={(_, next) => { if (next.x !== viewport.x || next.y !== viewport.y || next.zoom !== viewport.zoom) { setViewport(next); changed(); } }} defaultViewport={viewport} minZoom={0.1} maxZoom={4} deleteKeyCode={['Backspace', 'Delete']} connectionRadius={36}>
-        <Background gap={20} size={1} color="#d4deda"/><Controls showInteractive={false}/>
+        {showGrid && <Background id="architecture-grid" variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#afbeb5"/>}<Controls showInteractive={false}/>
       </ReactFlow>
       {!nodes.length && <div className="canvas-empty"><div className="empty-glyph"><Plus size={22}/></div><h2>A blank canvas. A clear brief.</h2><p>Add your first component from the palette.<br />Then connect the operations your system needs.</p><button onClick={() => setLeftTab('components')}>Browse components <Plus size={16}/></button></div>}
     </div><div className="canvas-footer"><span>Drag a labeled output onto a component · Select + Delete to remove</span><span>One-way flow</span></div></section>
