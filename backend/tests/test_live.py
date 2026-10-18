@@ -12,7 +12,7 @@ pytestmark = [pytest.mark.live, pytest.mark.skipif(not os.environ.get("FAILOVER_
 def test_real_queued_submission_and_draft(slug):
     base = os.environ["FAILOVER_LIVE_URL"].rstrip("/") + "/api/v1"
     graph = passing(slug, "mongodb")
-    response = requests.post(f"{base}/challenges/{slug}/submissions", json={"graph": graph, "catalogVersion": 1, "challengeVersion": 1}, timeout=15)
+    response = requests.post(f"{base}/challenges/{slug}/submissions", json={"graph": graph, "catalogVersion": 2, "challengeVersion": 2}, timeout=15)
     assert response.status_code == 202, response.text
     id = response.json()["id"]
     for _ in range(60):
@@ -22,7 +22,7 @@ def test_real_queued_submission_and_draft(slug):
     assert value["status"] == "passed" and value["results"]["score"] == 100, value
     path = f"{base}/challenges/{slug}/draft"
     old = requests.get(path, timeout=10).json()
-    body = {"revision": old["revision"], "catalogVersion": 1, "graph": graph, "viewport": {"x": -31, "y": 84, "zoom": 0.8}}
+    body = {"revision": old["revision"], "catalogVersion": 2, "graph": graph, "viewport": {"x": -31, "y": 84, "zoom": 0.8}}
     assert requests.put(path, json=body, timeout=10).status_code == 200
     assert requests.put(path, json=body, timeout=10).status_code == 409
     restored = requests.get(path, timeout=10).json()

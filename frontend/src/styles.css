@@ -112,7 +112,7 @@ small { font-size: 12px; }
 .component-tooltip dd { margin: 0; text-align: right; font-weight: 600; max-width: 60%; }
 .component-tooltip p { padding-top: 10px; border-top: 1px solid var(--line); margin: 8px 0 0; line-height: 1.5; color: var(--muted); }
 .palette-item .palette-preview { flex: 0 0 42px; width: 42px; height: 38px; }
-.react-flow__handle { height: 9px !important; width: 9px !important; background: #fff !important; border: 2px solid #658674 !important; }
+.react-flow__handle { height: 18px !important; width: 18px !important; background: #fff !important; border: 2px solid #658674 !important; }
 .react-flow__handle:hover { background: var(--accent) !important; }
 .react-flow__controls { box-shadow: none !important; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .react-flow__controls button { border-radius: 0; }
@@ -165,3 +165,22 @@ input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; f
 /* Save feedback remains available on small screens. */
 @media (max-width: 1200px) { .toolbar-actions { flex-wrap: wrap; justify-content: flex-end; } .save-state { display: block; flex-basis: 100%; max-width: none; text-align: right; } }
 @media (max-width: 900px) { .toolbar-actions { justify-content: flex-start; } .save-state { order: 4; text-align: left; margin: 4px 0 0; } }
+
+.palette-group { margin-bottom: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+.palette-group .palette-item { border: 0; margin: 0; background: transparent; }
+.technology-picker { position: relative; margin: 0 0 16px; font-size: 12px; }
+.palette-group .technology-picker { margin: 0 10px 10px; }
+.technology-picker > summary { display: flex !important; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: #f6f8f5; cursor: pointer; list-style: none; }
+.technology-picker > summary::-webkit-details-marker { display: none; }
+.technology-picker summary > span, .technology-options button > span { flex: 1; text-align: left; }
+.technology-picker summary > svg, .technology-options button > svg { flex-shrink: 0; }
+.technology-options { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); padding: 4px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 18px #143b2a16; max-height: 280px; overflow-y: auto; }
+.technology-options button { display: flex; width: 100%; gap: 8px; padding: 9px 7px; border: 0; white-space: normal; font-size: 12px; }
+.technology-options button[aria-pressed="true"] { color: var(--accent); background: #edf4ef; }
+.port-label { position: absolute; left: 19px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #426658; background: #f5f7f2e8; padding: 1px 3px; pointer-events: none; border-radius: 3px; }
+.react-flow__handle { cursor: crosshair; }
+.react-flow__handle::before { content: ''; position: absolute; inset: -5px; }
+.component-node.connection-destination .component-art { border: 1px dashed #63998a; background: #dcece188; }
+.react-flow__handle.valid { background: var(--accent) !important; }
+
+.technology-picker.opens-up .technology-options { top: auto; bottom: calc(100% + 4px); }

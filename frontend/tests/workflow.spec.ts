@@ -1,5 +1,15 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { technologies, technologyName } from '../src/technologies';
+
+async function add(page: Page, tech: string) {
+  const titles: Record<string, string> = { client: 'Client', load_balancer: 'Load balancer', application: 'Application service', cache: 'Cache', relational_database: 'Relational database', nonrelational_database: 'NoSQL database', queue: 'Message queue', worker: 'Background worker' };
+  const label = `${titles[technologies[tech].type]} technology`;
+  await page.getByLabel(label, { exact: true }).click();
+  await page.getByRole('group', { name: `${label} options`, exact: true }).getByRole('button', { name: technologyName(tech), exact: true }).click();
+  await page.getByRole('button', { name: `Add ${tech}`, exact: true }).click();
+}
+
 
 async function connect(page: Page, source: string, operation: string, target: string) {
   await page.getByLabel('From', { exact: true }).selectOption({ label: source });
@@ -17,7 +27,7 @@ test('build, fail, revise, pass, save, reload, reopen and conflict using real se
   await expect(page.getByRole('heading', { name: 'URL shortener', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await page.getByRole('button', { name: /^Components/ }).click();
-  for (const tech of ['browser', 'nginx', 'service', 'postgresql']) await page.getByRole('button', { name: `Add ${tech}`, exact: true }).click();
+  for (const tech of ['browser', 'nginx', 'service', 'postgresql']) await add(page, tech);
   await connect(page, 'Client', 'request', 'Load balancer');
   await connect(page, 'Load balancer', 'request', 'Application service');
   await connect(page, 'Application service', 'read', 'PostgreSQL');
@@ -70,10 +80,10 @@ test('component artwork exposes lesson metrics on hover and keyboard focus', asy
   await page.goto('/challenges/product-catalog');
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await page.getByRole('button', { name: /^Components/ }).click();
-  await page.getByRole('button', { name: 'Add browser', exact: true }).click();
-  await page.getByRole('button', { name: 'Add service', exact: true }).click();
+  await add(page, 'browser');
+  await add(page, 'service');
   await page.getByLabel('Instances', { exact: true }).fill('6');
-  await page.getByRole('button', { name: 'Add redis', exact: true }).click();
+  await add(page, 'redis');
   await page.getByLabel('Cache memory (MB)').selectOption('512');
   await page.getByLabel('Client request output', { exact: true }).dragTo(page.getByLabel('Application service input', { exact: true }));
   await expect(page.locator('.canvas-caption')).toContainText('1 connections');
@@ -106,12 +116,12 @@ test('notification and catalog lessons can be solved through controls', async ({
   await page.goto('/challenges/notification-service');
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await page.getByRole('button', { name: /^Components/ }).click();
-  for (const tech of ['browser', 'service', 'rabbitmq']) await page.getByRole('button', { name: `Add ${tech}`, exact: true }).click();
+  for (const tech of ['browser', 'service', 'rabbitmq']) await add(page, tech);
   await page.getByLabel('Durable queue', { exact: true }).check();
-  await page.getByRole('button', { name: 'Add celery', exact: true }).click();
+  await add(page, 'celery');
   await page.getByLabel('Instances', { exact: true }).fill('2');
   await page.getByLabel('Acknowledge after successful processing').check();
-  await page.getByRole('button', { name: 'Add mongodb', exact: true }).click();
+  await add(page, 'mongodb');
   await connect(page, 'Client', 'request', 'Application service');
   await connect(page, 'Application service', 'publish', 'Message queue');
   await connect(page, 'Message queue', 'consume', 'Background worker');
@@ -126,11 +136,11 @@ test('notification and catalog lessons can be solved through controls', async ({
   await page.goto('/challenges/product-catalog');
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await page.getByRole('button', { name: /^Components/ }).click();
-  for (const tech of ['browser', 'service']) await page.getByRole('button', { name: `Add ${tech}`, exact: true }).click();
+  for (const tech of ['browser', 'service']) await add(page, tech);
   await page.getByLabel('Instances', { exact: true }).fill('6');
-  await page.getByRole('button', { name: 'Add redis', exact: true }).click();
+  await add(page, 'redis');
   await page.getByLabel('Cache memory (MB)').selectOption('512');
-  await page.getByRole('button', { name: 'Add mysql', exact: true }).click();
+  await add(page, 'mysql');
   await connect(page, 'Client', 'request', 'Application service');
   await connect(page, 'Application service', 'read', 'Cache');
   await connect(page, 'Application service', 'read', 'MySQL');
@@ -142,6 +152,103 @@ test('notification and catalog lessons can be solved through controls', async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByText(/Canvas editing works best/)).toBeVisible();
   await page.screenshot({ path: 'test-results/mobile.png', fullPage: true });
+  await page.getByRole('button', { name: 'Reset', exact: true }).click();
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Draft saved' })).toBeVisible();
+});
+
+async function dragArrow(page: Page, output: string, target: string) {
+  // Finish over artwork, not the tiny input handle.
+  const start = await page.getByLabel(output, { exact: true }).boundingBox();
+  const end = await page.getByTestId(`component-${target}`).locator('.component-art').boundingBox();
+  if (!start || !end) throw new Error('Missing connection endpoint');
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 15 });
+  await page.mouse.up();
+}
+
+test('grouped technologies preserve configuration and arrows attach to artwork', async ({ page }) => {
+  page.on('dialog', dialog => dialog.accept());
+  await page.goto('/challenges/notification-service');
+  await page.getByRole('button', { name: 'Reset', exact: true }).click();
+  await page.getByRole('button', { name: /^Components/ }).click();
+  await expect(page.locator('.palette-group')).toHaveCount(8);
+  // Every variant has its own icon in the dropdown, and selection updates the preview.
+  for (const group of await page.locator('.palette-group').all()) {
+    const picker = group.locator('summary');
+    await picker.click();
+    for (const option of await group.locator('.technology-options button').all()) {
+      await expect(option.locator('svg').first()).toBeVisible();
+    }
+    await picker.press('Escape');
+  }
+  for (const tech of ['generic-client', 'service', 'sqs', 'lambda', 'dynamodb']) await add(page, tech);
+  await page.getByRole('button', { name: /fit view/i }).click();
+  await dragArrow(page, 'Client request output', 'service');
+  await dragArrow(page, 'Application service publish output', 'sqs');
+  await dragArrow(page, 'Message queue consume output', 'lambda');
+  await dragArrow(page, 'Background worker write output', 'dynamodb');
+  await expect(page.locator('.canvas-caption')).toContainText('4 connections');
+  // Exact duplicates and incompatible semantics still give helpful errors.
+  await dragArrow(page, 'Client request output', 'service');
+  await expect(page.getByRole('alert')).toContainText('exact connection already exists');
+  await dragArrow(page, 'Client request output', 'dynamodb');
+  await expect(page.getByRole('alert')).toContainText('direction or operation is not supported');
+  await page.getByTestId('component-lambda').click();
+  await page.getByLabel('Instances', { exact: true }).fill('2');
+  await page.getByLabel('Acknowledge after successful processing').check();
+  await page.getByLabel('Component technology', { exact: true }).click();
+  await page.getByRole('group', { name: 'Component technology options', exact: true }).getByRole('button', { name: 'Sidekiq', exact: true }).click();
+  await expect(page.getByLabel('Instances', { exact: true })).toHaveValue('2');
+  await expect(page.getByLabel('Acknowledge after successful processing')).toBeChecked();
+  await page.getByTestId('component-sqs').click();
+  await page.getByLabel('Durable queue', { exact: true }).check();
+  await page.getByRole('button', { name: 'Submit design' }).click();
+  await expect(page.getByText('100 / 100 · 6/6 checks')).toBeVisible();
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Draft saved' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId('component-sidekiq')).toBeVisible();
+  await expect(page.locator('.canvas-caption')).toContainText('4 connections');
+  await page.getByRole('button', { name: /^Components/ }).click();
+  await page.getByLabel('Relational database technology', { exact: true }).click();
+  const options = page.getByRole('group', { name: 'Relational database technology options', exact: true });
+  await expect(options.getByRole('button', { name: 'Oracle Database', exact: true })).toBeInViewport();
+  await expect(options.getByRole('button', { name: 'Amazon RDS', exact: true })).toBeInViewport();
+  await page.screenshot({ path: 'test-results/technology-picker.png', fullPage: true });
+  await page.getByRole('button', { name: 'Reset', exact: true }).click();
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Draft saved' })).toBeVisible();
+});
+
+test('separate read and write arrows attach by dragging and survive node moves', async ({ page }) => {
+  page.on('dialog', dialog => dialog.accept());
+  await page.goto('/challenges/product-catalog');
+  await page.getByRole('button', { name: 'Reset', exact: true }).click();
+  await page.getByRole('button', { name: /^Components/ }).click();
+  for (const tech of ['service', 'oracle', 'memcached']) await add(page, tech);
+  await dragArrow(page, 'Application service read output', 'oracle');
+  await dragArrow(page, 'Application service write output', 'oracle');
+  await dragArrow(page, 'Application service read output', 'memcached');
+  await expect(page.locator('.canvas-caption')).toContainText('3 connections');
+  await page.getByTestId('component-oracle').click();
+  await page.getByLabel('Component label', { exact: true }).fill('Primary store');
+  await page.getByLabel('Component technology', { exact: true }).click();
+  await page.getByRole('group', { name: 'Component technology options', exact: true }).getByRole('button', { name: 'Amazon RDS', exact: true }).click();
+  await expect(page.getByLabel('Component label', { exact: true })).toHaveValue('Primary store');
+  const node = page.getByTestId('component-rds').locator('.component-art');
+  const box = await node.boundingBox();
+  if (!box) throw new Error('Missing node');
+  await page.mouse.move(box.x + 50, box.y + 50); await page.mouse.down();
+  await page.mouse.move(box.x - 70, box.y + 220, { steps: 12 }); await page.mouse.up();
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Draft saved' })).toBeVisible();
+  const draft = await (await page.request.get('/api/v1/challenges/product-catalog/draft')).json();
+  expect(draft.graph.edges).toHaveLength(3);
+  expect(draft.graph.edges.filter((e: { operation: string }) => e.operation === 'write')).toHaveLength(1);
+  await page.reload();
+  await expect(page.locator('.react-flow__edge-path')).toHaveCount(3);
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await page.getByRole('button', { name: 'Save draft', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Draft saved' })).toBeVisible();

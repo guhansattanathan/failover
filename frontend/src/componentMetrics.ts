@@ -1,7 +1,7 @@
 import type { Challenge, GraphNode } from './types';
 
 export type Metric = { label: string; value: string };
-export const technologyName = (tech: string) => ({ browser: 'Web / mobile client', service: 'Application service', nginx: 'NGINX', redis: 'Redis', postgresql: 'PostgreSQL', mysql: 'MySQL', mongodb: 'MongoDB', rabbitmq: 'RabbitMQ', celery: 'Celery worker' }[tech] || tech);
+export { technologyName } from './technologies';
 
 /** Values come from the frozen lesson parameters, never an invented benchmark. */
 export function componentMetrics(node: GraphNode, lesson: Challenge | null): Metric[] {

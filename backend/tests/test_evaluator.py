@@ -150,3 +150,19 @@ def test_empty_graph_is_valid_but_fails_every_rule():
     for l in LESSONS:
         result = evaluate({"schemaVersion": 1, "nodes": [], "edges": []}, l)
         assert result["score"] == 0 and not result["passed"]
+
+@pytest.mark.parametrize('kind', ['client', 'load_balancer', 'application', 'cache', 'relational_database', 'nonrelational_database', 'queue', 'worker'])
+def test_technology_variants_keep_semantic_grading(kind):
+    from core.catalog import COMPONENTS
+    from core.validation import validate_graph
+    from core.lessons import LESSONS
+    from tests.fixtures import passing
+    from core.evaluator import evaluate
+    for entry in [c for c in COMPONENTS if c['type'] == kind]:
+        slug = 'notification-service' if kind in ('queue', 'worker') else 'product-catalog' if kind == 'cache' else 'url-shortener'
+        graph = passing(slug, 'mongodb' if kind == 'nonrelational_database' else 'postgresql')
+        node = next(n for n in graph['nodes'] if n['type'] == kind)
+        node['technology'] = entry['technology']
+        normalized = validate_graph(graph)
+        lesson = next(c for c in LESSONS if c['slug'] == slug)
+        assert evaluate(normalized, lesson)['passed'], entry['technology']

@@ -1,5 +1,5 @@
 """Authoritative teaching catalog. No capacities are accepted from a browser."""
-CATALOG_VERSION = 1
+CATALOG_VERSION = 2
 SCHEMA_VERSION = 1
 
 
@@ -11,16 +11,31 @@ def boolean(default):
     return {"kind": "boolean", "default": default}
 
 
+# Technology variants share semantic rules and configuration, not real-world guarantees.
+GROUPS = [
+    ("client", "Client", {}, [("generic-client", "Generic client"), ("browser", "Web browser"), ("android", "Android"), ("ios", "iOS")]),
+    ("load_balancer", "Load balancer", {}, [("generic-balancer", "Generic load balancer"), ("nginx", "NGINX")]),
+    ("application", "Application service", {"instances": integer(1)}, [("service", "Generic application"), ("nodejs", "Node.js"), ("django", "Django"), ("spring", "Spring Boot")]),
+    ("cache", "Cache", {"memoryMB": {"kind": "enum", "default": 128, "values": [128, 256, 512]}}, [("generic-cache", "Generic cache"), ("redis", "Redis"), ("memcached", "Memcached"), ("elasticache", "Amazon ElastiCache")]),
+    ("relational_database", "Relational database", {"persistent": boolean(True)}, [("generic-sql", "Generic relational database"), ("postgresql", "PostgreSQL"), ("mysql", "MySQL"), ("oracle", "Oracle Database"), ("rds", "Amazon RDS")]),
+    ("nonrelational_database", "NoSQL database", {"persistent": boolean(True)}, [("generic-nosql", "Generic NoSQL database"), ("mongodb", "MongoDB"), ("dynamodb", "Amazon DynamoDB"), ("cassandra", "Apache Cassandra")]),
+    ("queue", "Message queue", {"durable": boolean(False)}, [("generic-queue", "Generic message queue"), ("rabbitmq", "RabbitMQ"), ("kafka", "Apache Kafka"), ("sqs", "Amazon SQS")]),
+    ("worker", "Background worker", {"instances": integer(1), "ackAfterProcessing": boolean(False)}, [("generic-worker", "Generic background worker"), ("celery", "Celery"), ("sidekiq", "Sidekiq"), ("lambda", "AWS Lambda")]),
+]
+DESCRIPTIONS = {
+    "client": "Starts application requests.",
+    "load_balancer": "Routes requests across application instances.",
+    "application": "One homogeneous service tier; lesson constants determine capacity.",
+    "cache": "A read cache; the catalog lesson assigns synthetic hit ratios to memory sizes.",
+    "relational_database": "Structured storage with a simplified persistence setting. RDS represents a managed relational service, not a database engine.",
+    "nonrelational_database": "Non-relational storage with a simplified persistence setting.",
+    "queue": "Buffers jobs for workers. Kafka is modeled only as a delivery queue in these lessons.",
+    "worker": "Processes jobs. Lambda represents a worker role; instance and acknowledgment settings are lesson abstractions.",
+}
 COMPONENTS = [
-    {"type": "client", "title": "Client", "technology": "browser", "icon": "monitor", "description": "A browser or mobile application that starts requests.", "configuration": {}},
-    {"type": "load_balancer", "title": "Load balancer", "technology": "nginx", "icon": "nginx", "description": "Routes incoming requests across application instances.", "configuration": {}},
-    {"type": "application", "title": "Application service", "technology": "service", "icon": "server", "description": "One homogeneous service tier. Instances share the same role; lesson constants determine their capacity.", "configuration": {"instances": integer(1)}},
-    {"type": "cache", "title": "Cache", "technology": "redis", "icon": "redis", "description": "Redis read cache. Only the catalog lesson assigns synthetic hit ratios to memory sizes.", "configuration": {"memoryMB": {"kind": "enum", "default": 128, "values": [128, 256, 512]}}},
-    {"type": "relational_database", "title": "Relational database", "technology": "postgresql", "icon": "postgresql", "description": "PostgreSQL persistent structured storage. Persistence is a simplified lesson setting.", "configuration": {"persistent": boolean(True)}},
-    {"type": "relational_database", "title": "Relational database", "technology": "mysql", "icon": "mysql", "description": "MySQL persistent structured storage. Accepted wherever a lesson requires a database.", "configuration": {"persistent": boolean(True)}},
-    {"type": "nonrelational_database", "title": "Document database", "technology": "mongodb", "icon": "mongodb", "description": "MongoDB document storage. Accepted wherever a lesson requires a database.", "configuration": {"persistent": boolean(True)}},
-    {"type": "queue", "title": "Message queue", "technology": "rabbitmq", "icon": "rabbitmq", "description": "Buffers jobs between the API and background workers. Durability is an educational simplification.", "configuration": {"durable": boolean(False)}},
-    {"type": "worker", "title": "Background worker", "technology": "celery", "icon": "celery", "description": "Processes delivered jobs and acknowledges them after successful processing when enabled.", "configuration": {"instances": integer(1), "ackAfterProcessing": boolean(False)}},
+    {"type": kind, "title": title, "technology": tech, "technologyTitle": name, "icon": tech,
+     "description": DESCRIPTIONS[kind], "configuration": config}
+    for kind, title, config, variants in GROUPS for tech, name in variants
 ]
 DATABASE_TYPES = {"relational_database", "nonrelational_database"}
 CONNECTIONS = [

@@ -30,7 +30,7 @@ def client():
 
 
 def create(client, graph=None):
-    response = client.post("/api/v1/challenges/url-shortener/submissions", {"graph": graph if graph is not None else passing("url-shortener"), "challengeVersion": 1, "catalogVersion": 1}, format="json")
+    response = client.post("/api/v1/challenges/url-shortener/submissions", {"graph": graph if graph is not None else passing("url-shortener"), "challengeVersion": 2, "catalogVersion": 2}, format="json")
     assert response.status_code == 202, response.data
     return response.data
 
@@ -46,7 +46,7 @@ def test_draft_roundtrip_conflict_and_snapshot_isolation(client):
     path = "/api/v1/challenges/url-shortener/draft"
     assert client.get(path).data["revision"] == 0
     g = passing("url-shortener"); g["nodes"][0]["position"] = {"x": -82.25, "y": 541.5}
-    data = {"graph": g, "viewport": {"x": 20, "y": -10, "zoom": 0.75}, "revision": 0, "catalogVersion": 1}
+    data = {"graph": g, "viewport": {"x": 20, "y": -10, "zoom": 0.75}, "revision": 0, "catalogVersion": 2}
     saved = client.put(path, data, format="json")
     assert saved.status_code == 200 and saved.data["revision"] == 1
     restored = client.get(path).data
@@ -141,7 +141,7 @@ def test_cache_failure_has_authoritative_fallback(client):
 
 def test_invalid_payload_and_origin_errors(client):
     g = passing("url-shortener"); g["nodes"][2]["configuration"]["capacity"] = 999999
-    data = {"graph": g, "challengeVersion": 1, "catalogVersion": 1}
+    data = {"graph": g, "challengeVersion": 2, "catalogVersion": 2}
     assert client.post("/api/v1/challenges/url-shortener/submissions", data, format="json").status_code == 400
     assert not Submission.objects.exists()
     assert client.post("/api/v1/challenges/url-shortener/submissions", data, format="json", HTTP_ORIGIN="https://evil.invalid").status_code == 403
@@ -155,7 +155,7 @@ def test_pagination_and_version_validation(client):
     p2 = client.get("/api/v1/challenges/url-shortener/submissions?page=2").data
     assert len(p1["results"]) == 10 and len(p2["results"]) == 1 and p1["count"] == 11
     assert client.get("/api/v1/challenges/url-shortener/submissions?page=-1").status_code == 400
-    assert client.post("/api/v1/challenges/url-shortener/submissions", {"graph": passing("url-shortener"), "challengeVersion": 2, "catalogVersion": 1}, format="json").status_code == 400
+    assert client.post("/api/v1/challenges/url-shortener/submissions", {"graph": passing("url-shortener"), "challengeVersion": 99, "catalogVersion": 2}, format="json").status_code == 400
 
 
 def test_model_snapshots_immutable(client):
@@ -167,3 +167,19 @@ def test_model_snapshots_immutable(client):
     if connection.vendor == "postgresql":
         with pytest.raises(DatabaseError), transaction.atomic():
             Submission.objects.filter(pk=row.pk).update(graph={})
+
+
+def test_reseed_adds_catalog_version_without_mutating_old_history(client):
+    from learning.models import Challenge
+    challenge = Challenge.objects.get(slug='url-shortener')
+    current = challenge.current_version
+    old = ChallengeVersion.objects.create(challenge=challenge, number=1, catalog_version=1, model_version=current.model_version, definition=current.definition)
+    challenge.current_version = old
+    challenge.save()
+    call_command('seed', verbosity=0)
+    challenge.refresh_from_db()
+    old.refresh_from_db()
+    assert challenge.current_version_id == current.id
+    assert old.catalog_version == 1 and old.number == 1
+    call_command('seed', verbosity=0)
+    assert ChallengeVersion.objects.filter(challenge=challenge).count() == 2

@@ -28,3 +28,10 @@ Replaced canvas cards with original local SVG component illustrations, including
 - Local-only, single-user application; no authentication, public deployment, production simulator or cloud resource provisioning.
 - Test history is retained as verification evidence. Browser/live tests leave learner canvases empty.
 - Infrastructure verification advances SQL lease timestamps to test bounded recovery quickly; actual worker stops, RabbitMQ deliveries and database restarts are real.
+
+## Technology picker and connection update
+
+- [x] Eight grouped palette entries with generic defaults and product icons; inspector technology switching preserves settings, labels and edges.
+- [x] Additive catalog v2 and immutable lesson v2; older drafts/snapshots remain editable through the compatible catalog.
+- [x] Larger labeled output handles, artwork drop targets, separate read/write arrows and invalid/duplicate feedback.
+- [x] 83 isolated and 83 PostgreSQL tests passed, including all technology variants and version preservation. All five real-browser workflows passed after final dropdown placement polish, including visible Oracle/RDS options near the panel edge. Docker frontend type check/production build passed; screenshot visually inspected.

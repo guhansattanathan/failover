@@ -31,7 +31,7 @@ docker compose down
 
 1. Open a challenge. Its current saved draft loads automatically.
 2. Read the exact topology, required checks, and synthetic model assumptions.
-3. Open **Components** and click or drag components onto the canvas. The palette includes eight semantic types and PostgreSQL, MySQL, MongoDB, Redis, RabbitMQ, NGINX and Celery logos.
+3. Open **Components** and click or drag components onto the canvas. The palette has eight component types, each with a technology dropdown and a generic default. Choose PostgreSQL, MySQL, Oracle, RDS, MongoDB, DynamoDB, Cassandra, Redis, Memcached, ElastiCache, RabbitMQ, Kafka, SQS, Celery, Sidekiq, Lambda and other client/application options. Technology can also be changed in the inspector without losing configuration or connections.
 4. Components appear as actual diagram symbols: server stacks, database cylinders, Redis layers, a queue, a branching load balancer and a client monitor. Hover or keyboard-focus a symbol to see memory, instances, persistence and lesson-defined throughput. Values outside the lesson model are explicitly labeled unmodeled. Select a node to edit its configuration in the inspector. Application/worker instances scale one homogeneous tier, rather than adding extra tier nodes.
 5. Drag a source handle to an input, or use **From / Operation / To → Connect**. Handle tooltips name their operation. Separate database read and write arrows are supported. Consume goes from queue to worker.
 6. **Submit design** creates an immutable snapshot. Watch pending/running then passed/failed/error. Editing the current canvas never changes the displayed snapshot's results.
@@ -166,3 +166,5 @@ This is a single-user local demo, with no authentication or authorization. Do no
 Lesson capacities/hit ratios are synthetic. No real load tests, latency forecasts, cloud pricing, exactly-once guarantees, or production certification are implied. The catalog is deliberately restricted to operations supported by these lessons; CDN, DNS, object storage and other interview components need authored rules and connection semantics before inclusion. Draft migration between future incompatible catalog versions is not implemented; the UI rejects incompatible drafts/snapshots instead of silently changing them.
 
 The latest actual verification results are in [PROGRESS.md](PROGRESS.md).
+
+Technology choices share the lesson model; they do not simulate product-specific APIs. RDS is a managed service rather than an engine; Kafka and Lambda use the lesson’s simplified queue/worker roles. To connect components, drag a labeled output on the right onto the target artwork or its left input. Separate read/write arrows are supported; invalid directions and duplicates show validation feedback.

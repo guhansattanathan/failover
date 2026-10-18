@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MarkerType, useNodesState, useEdgesState } from '@xyflow/react';
-import type { Connection, ReactFlowInstance } from '@xyflow/react';
+import type { Connection, OnConnectEnd, ReactFlowInstance } from '@xyflow/react';
 import { ArrowLeft, Check, ChevronDown, CircleHelp, Plus, RotateCcw, Save, Send, Trash2 } from 'lucide-react';
 import { api, ApiError, message } from './api';
 import { graphError } from './graph';
@@ -9,6 +9,7 @@ import { technologyName } from './componentMetrics';
 import { ComponentNode, OperationEdge, DiagramProvider } from './Diagram';
 import { ComponentIllustration } from './ComponentIllustration';
 import type { DiagramEdge, DiagramNode } from './Diagram';
+import { TechnologyPicker } from './TechnologyPicker';
 import { TechnologyIcon } from './TechnologyIcon';
 import type { Catalog, Challenge, ComponentEntry, Draft, Graph, GraphNode, HistoryPage, Operation, Submission, Viewport } from './types';
 import '@xyflow/react/dist/style.css';
@@ -35,6 +36,7 @@ function Editor({ slug }: { slug: string }) {
   const [bottomTab, setBottomTab] = useState<'results' | 'history'>('results'), [leftTab, setLeftTab] = useState<'problem' | 'components'>('problem');
   const [pollEpoch, setPollEpoch] = useState(0), [pollMessage, setPollMessage] = useState('');
   const [source, setSource] = useState(''), [target, setTarget] = useState(''), [operation, setOperation] = useState<Operation>('request');
+  const [paletteChoices, setPaletteChoices] = useState<Record<string, string>>({});
   const changed = useCallback(() => { editVersion.current += 1; setDirty(true); setNotice(''); }, []);
   const selectionChanged = useCallback(({ nodes: selectedNodes, edges: selectedEdges }: { nodes: DiagramNode[]; edges: DiagramEdge[] }) => { setSelected(selectedNodes[0]?.id || null); setSelectedEdge(selectedEdges[0]?.id || null); }, []);
 
@@ -53,7 +55,7 @@ function Editor({ slug }: { slug: string }) {
     Promise.all([api<Catalog>('/components'), api<Challenge>(`/challenges/${slug}`)]).then(async ([c, lesson]) => {
       if (!alive) return; setCatalog(c); setChallenge(lesson);
       try { const d = await api<Draft>(`/challenges/${slug}/draft`); if (!alive) return;
-        if (d.catalogVersion !== c.version) throw new Error('Saved draft uses an unsupported catalog. Submit a new design or export your work before migrating.');
+        if (![1, c.version].includes(d.catalogVersion)) throw new Error('Saved draft uses an unsupported catalog. Submit a new design or export your work before migrating.');
         installGraph(d.graph, c, d.viewport); setRevision(d.revision); setDraftReady(true); setDirty(false);
       } catch (e) { if (alive) setDraftError(message(e)); }
     }).catch(e => { if (alive) setError(message(e)); }).finally(() => { if (alive) setLoading(false); });
@@ -90,6 +92,25 @@ function Editor({ slug }: { slug: string }) {
     if (problem) { setError(problem); return; }
     setEdges(old => [...old, { ...edge, type: 'operation', sourceHandle: edge.operation, data: { operation: edge.operation }, markerEnd: { type: MarkerType.ArrowClosed } }]); changed(); setError('');
   }
+  const finishConnection: OnConnectEnd = (event, state) => {
+    if (state.isValid || !state.fromNode || !state.fromHandle) return;
+    const point = 'changedTouches' in event ? event.changedTouches[0] : event;
+    const element = document.elementFromPoint(point.clientX, point.clientY)?.closest('.react-flow__node');
+    const targetId = element?.getAttribute('data-id');
+    if (!targetId) return;
+    if (state.fromHandle.type === 'source') {
+      connect({ source: state.fromNode.id, target: targetId, sourceHandle: state.fromHandle.id || operation });
+    } else {
+      setError('Start an arrow from a labeled output on the right, then drop it onto its destination.');
+    }
+  };
+  function chooseTechnology(technology: string) {
+    const next = catalog!.components.find(c => c.technology === technology && c.type === activeNode?.data.component.type);
+    if (!next || !activeNode) return;
+    const old = activeNode.data.component;
+    const automaticLabel = old.label === entry?.title || old.label === technologyName(old.technology);
+    updateNode({ technology, label: automaticLabel ? (old.type.includes('database') ? technologyName(technology) : next.title) : old.label });
+  }
   const activeNode = nodes.find(n => n.id === selected);
   const activeEdge = edges.find(e => e.id === selectedEdge);
   const entry = catalog?.components.find(c => c.technology === activeNode?.data.component.technology && c.type === activeNode?.data.component.type);
@@ -105,7 +126,7 @@ function Editor({ slug }: { slug: string }) {
   }
   async function reloadDraft() {
     if (dirty && !window.confirm('Replace your unsaved canvas with the saved draft?')) return;
-    try { const d = await api<Draft>(`/challenges/${slug}/draft`); if (d.catalogVersion !== catalog!.version) throw new Error('Saved draft catalog is incompatible.'); installGraph(d.graph, catalog!, d.viewport); setRevision(d.revision); setDirty(false); setDraftReady(true); setDraftError(''); setError(''); setNotice('Saved draft reloaded'); }
+    try { const d = await api<Draft>(`/challenges/${slug}/draft`); if (![1, catalog!.version].includes(d.catalogVersion)) throw new Error('Saved draft catalog is incompatible.'); installGraph(d.graph, catalog!, d.viewport); setRevision(d.revision); setDirty(false); setDraftReady(true); setDraftError(''); setError(''); setNotice('Saved draft reloaded'); }
     catch (e) { setDraftError(message(e)); }
   }
   async function submit() {
@@ -120,7 +141,7 @@ function Editor({ slug }: { slug: string }) {
     catch (e) { setError(message(e)); } finally { setSubmitting(false); }
   }
   function reopen(s: Submission) {
-    if (s.catalogVersion !== catalog!.version) { setError('This snapshot needs a catalog migration before editing.'); return; }
+    if (![1, catalog!.version].includes(s.catalogVersion)) { setError('This snapshot needs a catalog migration before editing.'); return; }
     if (dirty && !window.confirm('Replace unsaved edits with this submission snapshot?')) return;
     installGraph(s.graph, catalog!, defaultViewport); changed(); setNotice(`Opened snapshot ${s.id.slice(0, 8)} as an unsaved draft`); setResult(s); setBottomTab('results');
   }
@@ -129,20 +150,28 @@ function Editor({ slug }: { slug: string }) {
   if (loading) return <main className="workspace-loading" role="status">Loading your workbench…</main>;
   if (!challenge || !catalog) return <main className="catalog-shell"><Link to="/">← Challenges</Link><div className="notice error" role="alert">{error || 'Could not load this challenge.'}<button onClick={() => setLoadAttempt(v => v + 1)}>Retry</button></div></main>;
 
+  const groups = [...new Set(catalog.components.map(c => c.type))].map(type => {
+    const choices = catalog.components.filter(c => c.type === type);
+    return { choices, chosen: choices.find(c => c.technology === paletteChoices[type]) || choices[0] };
+  });
+
   return <DiagramProvider lesson={challenge}><main className="workspace"><div className="workspace-toolbar"><div className="workspace-title"><Link aria-label="Back to challenges" to="/" onClick={e => { if (dirty && !window.confirm('Leave this page with unsaved edits?')) e.preventDefault(); }}><ArrowLeft size={18}/></Link><div><span className="eyebrow">CHALLENGE / {challenge.difficulty}</span><h1>{challenge.title}</h1></div></div><div className="toolbar-actions"><span className={`save-state ${dirty ? 'unsaved' : ''}`} role="status">{saving ? 'Saving…' : notice || (dirty ? 'Unsaved changes' : `Draft revision ${revision}`)}</span><button onClick={reset} title="Reset canvas"><RotateCcw size={16}/><span>Reset</span></button><button onClick={save} disabled={saving || !draftReady}><Save size={16}/><span>Save draft</span></button><button className="primary" onClick={submit} disabled={submitting}><Send size={16}/>{submitting ? 'Submitting…' : 'Submit design'}</button></div></div>
     <p className="mobile-note">Canvas editing works best on a larger display. Expand panels below to read requirements and feedback.</p>
     {error && <div className="notice error compact" role="alert">{error}<button onClick={() => setError('')} aria-label="Dismiss error">Dismiss</button></div>}
     {draftError && <div className="notice compact" role="alert">{draftError}<button onClick={reloadDraft}>Reload saved draft</button></div>}
-    <div className="workbench-grid"><details className="left-panel panel" open><summary>Requirements & components <ChevronDown size={16}/></summary><div className="tabs" aria-label="Left panel"><button className={leftTab === 'problem' ? 'active' : ''} onClick={() => setLeftTab('problem')}>Problem</button><button className={leftTab === 'components' ? 'active' : ''} onClick={() => setLeftTab('components')}>Components <span>{catalog.components.length}</span></button></div>
-      {leftTab === 'problem' ? <div className="panel-content problem"><span className="difficulty">{challenge.difficulty} · Lesson {challenge.version}</span><h2>The brief</h2><p>{challenge.prompt}</p><h3>Required checks</h3><ol>{challenge.constraints.map(c => <li key={c}>{c}</li>)}</ol><details className="assumptions" open><summary>Model & assumptions</summary>{challenge.assumptions.map(a => <p key={a}>{a}</p>)}</details><button className="wide" onClick={() => setLeftTab('components')}><Plus size={16}/> Start assembling</button></div> : <div className="panel-content palette"><p className="muted">Drag onto the canvas, or click to add. Select a component to configure it.</p>{catalog.components.map(c => <button className="palette-item" key={`${c.type}:${c.technology}`} draggable onDragStart={e => { e.dataTransfer.setData('application/failover', c.technology); e.dataTransfer.effectAllowed = 'copy'; }} onClick={() => addComponent(c)} aria-label={`Add ${c.technology}`}><span className="palette-preview"><ComponentIllustration technology={c.technology}/></span><span><strong>{c.title}</strong><small>{c.technology}</small></span><Plus size={16}/></button>)}<p className="palette-footnote">Technology logos identify products. Capacity is defined by the lesson, not the logo.</p></div>}
+    <div className="workbench-grid"><details className="left-panel panel" open><summary>Requirements & components <ChevronDown size={16}/></summary><div className="tabs" aria-label="Left panel"><button className={leftTab === 'problem' ? 'active' : ''} onClick={() => setLeftTab('problem')}>Problem</button><button className={leftTab === 'components' ? 'active' : ''} onClick={() => setLeftTab('components')}>Components <span>{groups.length}</span></button></div>
+      {leftTab === 'problem' ? <div className="panel-content problem"><span className="difficulty">{challenge.difficulty} · Lesson {challenge.version}</span><h2>The brief</h2><p>{challenge.prompt}</p><h3>Required checks</h3><ol>{challenge.constraints.map(c => <li key={c}>{c}</li>)}</ol><details className="assumptions" open><summary>Model & assumptions</summary>{challenge.assumptions.map(a => <p key={a}>{a}</p>)}</details><button className="wide" onClick={() => setLeftTab('components')}><Plus size={16}/> Start assembling</button></div> : <div className="panel-content palette"><p className="muted">Drag onto the canvas, or click to add. Select a component to configure it.</p>{groups.map(({ choices, chosen: c }) => <div className="palette-group" key={c.type}>
+        <button className="palette-item" draggable onDragStart={e => { e.dataTransfer.setData('application/failover', c.technology); e.dataTransfer.effectAllowed = 'copy'; }} onClick={() => addComponent(c)} aria-label={`Add ${c.technology}`}><span className="palette-preview"><ComponentIllustration technology={c.technology}/></span><span><strong>{c.title}</strong><small>Drag or click to add</small></span><Plus size={16}/></button>
+        <TechnologyPicker label={`${c.title} technology`} value={c.technology} choices={choices} onChange={technology => setPaletteChoices(old => ({ ...old, [c.type]: technology }))}/>
+      </div>)}<p className="palette-footnote">Technology logos identify products. Capacity is defined by the lesson, not the logo.</p></div>}
     </details>
     <section className="canvas-section" aria-label="Architecture canvas"><div className="canvas-caption"><span>ARCHITECTURE</span><span>{nodes.length} components · {edges.length} connections</span></div><div className="canvas" onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }} onDrop={e => { e.preventDefault(); const c = catalog.components.find(c => c.technology === e.dataTransfer.getData('application/failover')); if (c && flow.current) addComponent(c, flow.current.screenToFlowPosition({ x: e.clientX, y: e.clientY })); }}>
-      <ReactFlow<DiagramNode, DiagramEdge> nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={changes => { onNodesChange(changes); if (changes.some(c => ['position', 'remove'].includes(c.type))) changed(); }} onEdgesChange={changes => { onEdgesChange(changes); if (changes.some(c => c.type === 'remove')) changed(); }} onConnect={connect} onSelectionChange={selectionChanged} onNodeClick={(_, n) => { setSelected(n.id); setSelectedEdge(null); }} onEdgeClick={(_, e) => { setSelectedEdge(e.id); setSelected(null); }} onPaneClick={() => { setSelected(null); setSelectedEdge(null); }} onInit={instance => { flow.current = instance; void instance.setViewport(viewport); }} onMoveEnd={(_, next) => { if (next.x !== viewport.x || next.y !== viewport.y || next.zoom !== viewport.zoom) { setViewport(next); changed(); } }} defaultViewport={viewport} minZoom={0.1} maxZoom={4} deleteKeyCode={['Backspace', 'Delete']} connectionRadius={24}>
+      <ReactFlow<DiagramNode, DiagramEdge> nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={changes => { onNodesChange(changes); if (changes.some(c => ['position', 'remove'].includes(c.type))) changed(); }} onEdgesChange={changes => { onEdgesChange(changes); if (changes.some(c => c.type === 'remove')) changed(); }} onConnect={connect} onConnectEnd={finishConnection} onSelectionChange={selectionChanged} onNodeClick={(_, n) => { setSelected(n.id); setSelectedEdge(null); }} onEdgeClick={(_, e) => { setSelectedEdge(e.id); setSelected(null); }} onPaneClick={() => { setSelected(null); setSelectedEdge(null); }} onInit={instance => { flow.current = instance; void instance.setViewport(viewport); }} onMoveEnd={(_, next) => { if (next.x !== viewport.x || next.y !== viewport.y || next.zoom !== viewport.zoom) { setViewport(next); changed(); } }} defaultViewport={viewport} minZoom={0.1} maxZoom={4} deleteKeyCode={['Backspace', 'Delete']} connectionRadius={36}>
         <Background gap={20} size={1} color="#d4deda"/><Controls showInteractive={false}/>
       </ReactFlow>
       {!nodes.length && <div className="canvas-empty"><div className="empty-glyph"><Plus size={22}/></div><h2>A blank canvas. A clear brief.</h2><p>Add your first component from the palette.<br />Then connect the operations your system needs.</p><button onClick={() => setLeftTab('components')}>Browse components <Plus size={16}/></button></div>}
-    </div><div className="canvas-footer"><span>Drag handles to connect · Select + Delete to remove</span><span>One-way flow</span></div></section>
-    <details className="right-panel panel" open><summary>Inspector <ChevronDown size={16}/></summary><div className="panel-content inspector"><p className="eyebrow">CONFIGURATION</p>{activeNode && entry ? <><h2><TechnologyIcon technology={entry.technology}/> {entry.title}</h2><p className="muted">{entry.description}</p><label>Component label<input value={activeNode.data.component.label} maxLength={80} onChange={e => updateNode({ label: e.target.value })}/></label>{Object.entries(entry.configuration).map(([key, spec]) => <label className={spec.kind === 'boolean' ? 'check-label' : ''} key={key}>{spec.kind === 'boolean' ? <><input type="checkbox" checked={Boolean(activeNode.data.component.configuration[key])} onChange={e => updateNode({ configuration: { ...activeNode.data.component.configuration, [key]: e.target.checked } })}/>{labels[key]}</> : <>{labels[key]}{spec.kind === 'enum' ? <select aria-label={labels[key]} value={Number(activeNode.data.component.configuration[key])} onChange={e => updateNode({ configuration: { ...activeNode.data.component.configuration, [key]: Number(e.target.value) } })}>{spec.values!.map(v => <option key={v} value={v}>{v}</option>)}</select> : <input type="number" min={spec.min} max={spec.max} value={Number(activeNode.data.component.configuration[key])} onChange={e => updateNode({ configuration: { ...activeNode.data.component.configuration, [key]: Number(e.target.value) } })}/>}</>}</label>)}<p className="field-note">Effective values shown, including catalog defaults.</p><button className="danger" onClick={removeSelected}><Trash2 size={16}/> Delete component</button></> : activeEdge ? <><h2>Connection</h2><p>{activeEdge.data?.operation}: {nodes.find(n => n.id === activeEdge.source)?.data.component.label} → {nodes.find(n => n.id === activeEdge.target)?.data.component.label}</p><p className="muted">Delete and reconnect to change the operation.</p><button className="danger" onClick={removeSelected}><Trash2 size={16}/> Delete connection</button></> : <div className="inspector-empty"><CircleHelp size={20}/><h2>Inspect your design</h2><p>Select a component to adjust its configuration, or a connection to remove it.</p></div>}
+    </div><div className="canvas-footer"><span>Drag a labeled output onto a component · Select + Delete to remove</span><span>One-way flow</span></div></section>
+    <details className="right-panel panel" open><summary>Inspector <ChevronDown size={16}/></summary><div className="panel-content inspector"><p className="eyebrow">CONFIGURATION</p>{activeNode && entry ? <><h2><TechnologyIcon technology={entry.technology}/> {entry.title}</h2><p className="muted">{entry.description}</p><TechnologyPicker label="Component technology" value={entry.technology} choices={catalog.components.filter(c => c.type === entry.type)} onChange={chooseTechnology}/><label>Component label<input value={activeNode.data.component.label} maxLength={80} onChange={e => updateNode({ label: e.target.value })}/></label>{Object.entries(entry.configuration).map(([key, spec]) => <label className={spec.kind === 'boolean' ? 'check-label' : ''} key={key}>{spec.kind === 'boolean' ? <><input type="checkbox" checked={Boolean(activeNode.data.component.configuration[key])} onChange={e => updateNode({ configuration: { ...activeNode.data.component.configuration, [key]: e.target.checked } })}/>{labels[key]}</> : <>{labels[key]}{spec.kind === 'enum' ? <select aria-label={labels[key]} value={Number(activeNode.data.component.configuration[key])} onChange={e => updateNode({ configuration: { ...activeNode.data.component.configuration, [key]: Number(e.target.value) } })}>{spec.values!.map(v => <option key={v} value={v}>{v}</option>)}</select> : <input type="number" min={spec.min} max={spec.max} value={Number(activeNode.data.component.configuration[key])} onChange={e => updateNode({ configuration: { ...activeNode.data.component.configuration, [key]: Number(e.target.value) } })}/>}</>}</label>)}<p className="field-note">Effective values shown, including catalog defaults.</p><button className="danger" onClick={removeSelected}><Trash2 size={16}/> Delete component</button></> : activeEdge ? <><h2>Connection</h2><p>{activeEdge.data?.operation}: {nodes.find(n => n.id === activeEdge.source)?.data.component.label} → {nodes.find(n => n.id === activeEdge.target)?.data.component.label}</p><p className="muted">Delete and reconnect to change the operation.</p><button className="danger" onClick={removeSelected}><Trash2 size={16}/> Delete connection</button></> : <div className="inspector-empty"><CircleHelp size={20}/><h2>Inspect your design</h2><p>Select a component to adjust its configuration, or a connection to remove it.</p></div>}
       <form className="connection-form" onSubmit={e => { e.preventDefault(); connect({ source, target, sourceHandle: operation }); }}><h3>Add a connection</h3><p className="muted">An alternative to dragging handles.</p><label>From<select aria-label="From" value={source} onChange={e => setSource(e.target.value)}><option value="">Choose source</option>{nodes.map(n => <option key={n.id} value={n.id}>{n.data.component.label}</option>)}</select></label><label>Operation<select aria-label="Operation" value={operation} onChange={e => setOperation(e.target.value as Operation)}>{['request', 'read', 'write', 'publish', 'consume'].map(o => <option key={o}>{o}</option>)}</select></label><label>To<select aria-label="To" value={target} onChange={e => setTarget(e.target.value)}><option value="">Choose target</option>{nodes.map(n => <option key={n.id} value={n.id}>{n.data.component.label}</option>)}</select></label><button className="wide" type="submit" disabled={!source || !target}><Plus size={16}/> Connect</button></form>
     </div></details></div>
     <details className="feedback-panel" open><summary>Evaluation & history <ChevronDown size={16}/></summary><div className="feedback-heading"><div className="tabs"><button className={bottomTab === 'results' ? 'active' : ''} onClick={() => setBottomTab('results')}>Evaluation</button><button className={bottomTab === 'history' ? 'active' : ''} onClick={() => { setBottomTab('history'); void loadHistory(); }}>Submission history {history && <span>{history.count}</span>}</button></div><span className="muted">Score = passed required checks / total required checks × 100</span></div>

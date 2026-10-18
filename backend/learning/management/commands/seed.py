@@ -7,13 +7,13 @@ from learning.stores import invalidate_cache
 
 
 class Command(BaseCommand):
-    help = "Idempotently seed immutable lesson version 1."
+    help = "Idempotently seed immutable lesson versions."
 
     def handle(self, *args, **options):
         with transaction.atomic():
             for definition in LESSONS:
                 c, _ = Challenge.objects.get_or_create(slug=definition["slug"], defaults={"title": definition["title"], "difficulty": definition["difficulty"]})
-                version, _ = ChallengeVersion.objects.get_or_create(challenge=c, number=1, defaults={"catalog_version": CATALOG_VERSION, "model_version": MODEL_VERSION, "definition": definition})
+                version, _ = ChallengeVersion.objects.get_or_create(challenge=c, number=CATALOG_VERSION, defaults={"catalog_version": CATALOG_VERSION, "model_version": MODEL_VERSION, "definition": definition})
                 if version.definition != definition:
                     raise CommandError("Existing lesson version differs. Bump the version; never rewrite history.")
                 c.title, c.difficulty, c.current_version = definition["title"], definition["difficulty"], version

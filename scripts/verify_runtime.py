@@ -36,7 +36,7 @@ def get(path):
 
 
 def submit():
-    response = requests.post(BASE + "/challenges/url-shortener/submissions", json={"graph": passing("url-shortener"), "challengeVersion": 1, "catalogVersion": 1}, timeout=30)
+    response = requests.post(BASE + "/challenges/url-shortener/submissions", json={"graph": passing("url-shortener"), "challengeVersion": 2, "catalogVersion": 2}, timeout=30)
     assert response.status_code == 202, response.status_code
     return response.json()
 
@@ -112,7 +112,7 @@ def main():
 
     path = "/challenges/url-shortener/draft"
     old = get(path)
-    body = {"revision": old["revision"], "catalogVersion": 1, "graph": passing("url-shortener"), "viewport": {"x": 38.5, "y": -122, "zoom": 0.75}}
+    body = {"revision": old["revision"], "catalogVersion": 2, "graph": passing("url-shortener"), "viewport": {"x": 38.5, "y": -122, "zoom": 0.75}}
     try:
         response = requests.put(BASE + path, json=body, timeout=15)
         assert response.status_code == 200
@@ -125,7 +125,7 @@ def main():
         print("PASS: draft layout/configuration/viewport and SQL history survive database restarts", flush=True)
     finally:
         current = get(path)
-        response = requests.put(BASE + path, json={"revision": current["revision"], "catalogVersion": old["catalogVersion"], "graph": old["graph"], "viewport": old["viewport"]}, timeout=15)
+        response = requests.put(BASE + path, json={"revision": current["revision"], "catalogVersion": 2, "graph": old["graph"], "viewport": old["viewport"]}, timeout=15)
         assert response.status_code == 200
     print(json.dumps({"runtimeVerification": "passed", "checks": 5}), flush=True)
 
