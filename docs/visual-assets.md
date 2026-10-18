@@ -34,3 +34,7 @@ CDN artwork uses a cloud connected to edge servers. Generic CDN uses a globe gly
 The shared application header uses `frontend/public/brand/failover-approved.png`, the exact image approved by the user. Its original pixels are preserved. An SVG viewport frames the wordmark; CSS inversion and screen blending display it in white against the dark header without regenerating the artwork. It replaces both the old `f/` symbol and the plain brand text on all routes. The accessible home-link name and document title remain text.
 
 `frontend/public/brand/favicon.svg` is a compact code-native bridge mark based on the approved wordmark, optimized for browser tabs. No existing product component icons are changed.
+
+## Landing illustration
+
+`LandingHero.tsx` provides original SVG artwork: a bridge, router, three application instances, and storage. Animated request dots follow the drawn routes. The offline control changes one illustrated instance and removes its packet animation; no evaluation or capacity claim is inferred. Pause/resume operates on SVG animation playback, with reduced-motion users starting paused. The composition follows the user’s centered headline / lower illustration reference in the existing teal and muted green palette.

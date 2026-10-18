@@ -53,3 +53,10 @@ Replaced canvas cards with original local SVG component illustrations, including
 - [x] Increased dot visibility while keeping a restrained background; grid follows canvas pan/zoom.
 - [x] Added accessible Grid On/Off control with a browser-local preference, default on and safe fallback when storage is unavailable.
 - [x] Docker production build/type check and browser verification passed: toggle, reload, cross-lesson preference, keyboard, mobile and no false unsaved changes. Screenshot inspected.
+
+## Landing page redesign
+
+- [x] Removed both header labels; added compact functional navigation on the catalog page.
+- [x] Centered headline and CTA above original bridge/server artwork, with interactive offline/restore and packet motion.
+- [x] Pause control and reduced-motion support; responsive mobile layout.
+- [x] Production builds and browser checks passed: offline/restore, pause, reduced motion, challenge navigation, no horizontal mobile overflow or browser errors. Desktop/mobile screenshots inspected; server-label spacing corrected.
